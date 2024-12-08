@@ -1,0 +1,16 @@
+{
+  "name": "hardhat-javascript-starter",
+  "scripts": {
+    "build": "npx thirdweb@latest detect",
+    "deploy": "npx thirdweb@latest deploy -k fbdsfkQH_dJ9FgUTvfjFbhHy6YjUF-zrcVTPl1EFd5ovyCz8JC0ZmBvyiRWIesbhl5bUQepQ35VA5wr4YcDzDw",
+    "release": "npx thirdweb@latest release"
+  },
+  "devDependencies": {
+    "@matterlabs/hardhat-zksync-solc": "^1.2.5",
+    "hardhat": "^2.10.1"
+  },
+  "dependencies": {
+    "@thirdweb-dev/contracts": "^3",
+    "dotenv": "^16.0.3"
+  }
+}
