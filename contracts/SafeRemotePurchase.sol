@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.4;
-contract RemoteSafeTradingEcommersePlatform {
+contract RemoteSafeTradingEcommersePlatformContract {
     // declaring state variables
     uint public productCount;
     uint public purchaseCount;
@@ -67,26 +67,6 @@ contract RemoteSafeTradingEcommersePlatform {
         State status
     );
 
-    event SellerAcknowledgePurchase(
-        uint purchaseID
-    );
-    
-    event BuyerConfirmPurchase(
-        uint purchaseID
-    );
-
-    event BuyerConfirmReceivingProduct(
-        uint purchaseID
-    );
-
-    // MODIFIERS
-    // Modifier to restrict access to the owner
-    modifier onlyOwner() {
-        require(msg.sender == contractOwner, "Your are the owner of the smart contract");
-        _;
-    }
-
-    // emit new event when new product created
     // Define the event
     event ProductCreated(
         uint indexed productId,
@@ -99,7 +79,30 @@ contract RemoteSafeTradingEcommersePlatform {
         string category
     );
 
+    event SellerAcknowledgePurchase(
+        uint purchaseID,
+        address buyerAddress
+    );
+    
+    event BuyerConfirmPurchase(
+        uint purchaseID,
+        address sellerAddress
+    );
 
+    event BuyerConfirmReceivingProduct(
+        uint purchaseID,
+        address sellerAddress
+
+    );
+
+    // MODIFIERS
+    // Modifier to restrict access to the owner
+    modifier onlyOwner() {
+        require(msg.sender == contractOwner, "Your are the owner of the smart contract");
+        _;
+    }
+
+    
     // create a function to add a new product created to total product listing and seller listing
     function createProduct(
         string memory _sellerName,
@@ -213,8 +216,7 @@ contract RemoteSafeTradingEcommersePlatform {
 
         purchase.status=State.Created;
 
-        emit SellerAcknowledgePurchase(_purchase_id);
-
+        emit SellerAcknowledgePurchase(_purchase_id,purchase.buyer);
     }
 
      // seller lock in ether to confirm buyer interest and create a product transaction
@@ -293,7 +295,7 @@ contract RemoteSafeTradingEcommersePlatform {
 
         purchase.status=State.Locked;
 
-        emit BuyerConfirmPurchase(_purchase_id);
+        emit BuyerConfirmPurchase(_purchase_id,purchase.seller);
     }
 
     // buyer confirm receiving of product
@@ -315,7 +317,7 @@ contract RemoteSafeTradingEcommersePlatform {
 
         payable(msg.sender).transfer(purchase.requiredDepositSellerInWei);
 
-        emit BuyerConfirmReceivingProduct(_purchase_id);
+        emit BuyerConfirmReceivingProduct(_purchase_id,purchase.seller);
     }
 
     
