@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.4;
-contract RemoteSafeTradingEcommerse {
+contract RemoteSafeTradingEcommersePlatform {
+    // declaring state variables
     uint public productCount;
-    uint public purchaseCount; 
+    uint public purchaseCount;
+    address private contractOwner;
 
     struct Product {
         uint productId;
@@ -31,8 +33,15 @@ contract RemoteSafeTradingEcommerse {
     mapping(address => Product[]) public sellerListings;
     mapping(uint => Purchase) public purchaseHistory;
 
+    // Constructor to initialize the contract owner
+    constructor() {
+        // Set the contractOwner to the address deploying the contract
+        contractOwner = msg.sender;
+    }
+    
     enum State {ShowedInterest,Created,Locked,Release,Inactive,Complete}
 
+    // ERROR DEFINITION
     /// Only the buyer can call this function.
     error OnlyBuyer();
     /// Only the seller can call this function.
@@ -48,10 +57,34 @@ contract RemoteSafeTradingEcommerse {
     /// This purchase transaction no longer exists
     error PurchaseTransactionNoLongerExist();
 
-    event Aborted();
-    event PurchaseConfirmed();
-    event ItemReceived();
-    event SellerRefunded();
+    // EVENT DEFINITIONS
+    event PurchaseCreated(
+        uint indexed purchaseId,
+        address indexed buyer,
+        address indexed seller,
+        uint productId,
+        uint quantity,
+        State status
+    );
+
+    event SellerAcknowledgePurchase(
+        uint purchaseID
+    );
+    
+    event BuyerConfirmPurchase(
+        uint purchaseID
+    );
+
+    event BuyerConfirmReceivingProduct(
+        uint purchaseID
+    );
+
+    // MODIFIERS
+    // Modifier to restrict access to the owner
+    modifier onlyOwner() {
+        require(msg.sender == contractOwner, "Your are the owner of the smart contract");
+        _;
+    }
 
     // emit new event when new product created
     // Define the event
@@ -104,17 +137,6 @@ contract RemoteSafeTradingEcommerse {
         );
     }
 
-    
-    event PurchaseCreated(
-        uint indexed purchaseId,
-        address indexed buyer,
-        address indexed seller,
-        uint productId,
-        uint quantity,
-        State status
-    );
-
-
     // buyer click to show interest for the product
     function buyerIndicateInterestToBuyProduct(uint _productId, uint _quantity) external {
         require(_productId > 0 && _productId <= productCount, "Product does not exist");
@@ -163,6 +185,7 @@ contract RemoteSafeTradingEcommerse {
         return purchaseHistory[_purchase_id];
     }
 
+   
     // seller lock in ether to confirm buyer interest and create a product transaction
     function sellerAcknowledgeBuyerInterest(
         uint _purchase_id
@@ -189,6 +212,9 @@ contract RemoteSafeTradingEcommerse {
         }
 
         purchase.status=State.Created;
+
+        emit SellerAcknowledgePurchase(_purchase_id);
+
     }
 
      // seller lock in ether to confirm buyer interest and create a product transaction
@@ -243,6 +269,8 @@ contract RemoteSafeTradingEcommerse {
         payable(msg.sender).transfer(purchase.requiredDepositSellerInWei);
     }
 
+   
+
     // buyer confirm purchase 
     function buyerConfirmPurchase(
         uint _purchase_id 
@@ -264,6 +292,8 @@ contract RemoteSafeTradingEcommerse {
         }
 
         purchase.status=State.Locked;
+
+        emit BuyerConfirmPurchase(_purchase_id);
     }
 
     // buyer confirm receiving of product
@@ -284,8 +314,11 @@ contract RemoteSafeTradingEcommerse {
         purchase.status=State.Release;
 
         payable(msg.sender).transfer(purchase.requiredDepositSellerInWei);
+
+        emit BuyerConfirmReceivingProduct(_purchase_id);
     }
 
+    
     // buyer click to reclaim the fund and get money for their product
     function sellerReclaimDepositPlusProductPayment(
         uint _purchase_id 
@@ -383,4 +416,47 @@ contract RemoteSafeTradingEcommerse {
 
         return matchingPurchase;
     }
+
+
+    // Functions to specific to owner
+    // Function for the contract owner to view total revenue for a specific seller
+    function getTotalRevenueForSeller(address sellerAddress) 
+        external 
+        view 
+        onlyOwner 
+        returns (uint256) 
+    {
+        uint256 totalRevenue = 0;
+
+        for (uint i = 1; i <= purchaseCount; i++) {
+            if (purchaseHistory[i].seller == sellerAddress && purchaseHistory[i].status==State.Complete) {
+                // Calculate revenue from the purchase and add it to totalRevenue
+                totalRevenue += purchaseHistory[i].quantity * 
+                                productListings[purchaseHistory[i].productId - 1].priceInWei;
+            }
+        }
+
+        return totalRevenue;
+    }
+
+    // Function for the contract owner to view total spending for a specific buyer
+    function getTotalSpendingForBuyer(address buyerAddress) 
+        external 
+        view 
+        onlyOwner 
+        returns (uint256) 
+    {
+        uint256 totalSpending = 0;
+
+        for (uint i = 1; i <= purchaseCount; i++) {
+            if (purchaseHistory[i].buyer == buyerAddress && purchaseHistory[i].status==State.Complete) {
+                // Calculate spending for the purchase and add it to totalSpending
+                totalSpending += purchaseHistory[i].quantity * 
+                                 productListings[purchaseHistory[i].productId - 1].priceInWei;
+            }
+        }
+
+        return totalSpending;
+    }
+
 }
